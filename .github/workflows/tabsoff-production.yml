@@ -1,0 +1,40 @@
+name: Tabsoff production
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Promote the tested image or restore the previous paired backup
+        type: choice
+        options: [promote, rollback]
+        default: promote
+      image:
+        description: Exact staged ghcr.io/tabsoff/opentodo@sha256 digest (promote only)
+        type: string
+      revision:
+        description: Full source commit SHA shown by staging (promote only)
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tabsoff-server-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'tabsoff/OpenTodo' && github.ref == 'refs/heads/tabsoff'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Apply explicitly requested production action
+        env:
+          RELEASE_ACTION: ${{ inputs.action }}
+          RELEASE_IMAGE: ${{ inputs.image }}
+          RELEASE_REVISION: ${{ inputs.revision }}
+          DEPLOY_KEY: ${{ secrets.OPENTODO_DEPLOY_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.OPENTODO_DEPLOY_KNOWN_HOSTS }}
+        run: python3 deploy/tabsoff/client.py

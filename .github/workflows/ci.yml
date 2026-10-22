@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, tabsoff]
     tags: ["v*"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -45,6 +46,7 @@ jobs:
         with:
           node-version: 22
       - run: node --test scripts/repo-checks.test.mjs
+      - run: python3 -m unittest discover -s deploy/tabsoff -p 'test_release.py' -v
       - id: filter
         env:
           EVENT: ${{ github.event_name }}
@@ -466,6 +468,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
+            type=sha,prefix=sha-,format=long
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}

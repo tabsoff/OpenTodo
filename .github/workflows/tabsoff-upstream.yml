@@ -1,0 +1,29 @@
+name: Tabsoff official updates
+
+on:
+  schedule:
+    - cron: '23 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write # Explicit CI dispatch: GITHUB_TOKEN-created PRs do not trigger workflows.
+
+concurrency:
+  group: tabsoff-official-updates
+  cancel-in-progress: false
+
+jobs:
+  propose:
+    if: github.repository == 'tabsoff/OpenTodo' && github.ref == 'refs/heads/tabsoff'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Open a stable upstream release pull request without merging it
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 deploy/tabsoff/upstream.py
