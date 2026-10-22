@@ -57,11 +57,22 @@ jobs:
     name: Deployment lifecycle (synthetic data)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: changes
+    needs: [changes, image]
+    if: ${{ !cancelled() && needs.changes.result == 'success' && (needs.image.result == 'success' || needs.image.result == 'skipped') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: needs.image.result == 'success'
+        with:
+          name: deployment-candidate
+          path: /tmp/deployment-candidate
+      - name: Load the application image built and scanned in this run
+        if: needs.image.result == 'success'
+        run: docker load -i /tmp/deployment-candidate/deployment-image.tar
       - name: Exercise real promotion and recovery in isolated containers
-        run: sudo python3 scripts/tabsoff/lifecycle_smoke.py
+        env:
+          CANDIDATE_IMAGE: ${{ needs.image.result == 'success' && 'opentodo:ci' || '' }}
+        run: sudo python3 scripts/tabsoff/lifecycle_smoke.py "$CANDIDATE_IMAGE"
 
   web:
     name: Web (typecheck, test, build)
@@ -447,6 +458,13 @@ jobs:
           node-version: 22
       - name: Smoke test the built image like Coolify starts it
         run: node scripts/coolify-template-check.mjs --smoke --image opentodo:ci
+      - name: Export the tested image for the deployment lifecycle check
+        run: docker save -o /tmp/deployment-image.tar opentodo:ci
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: deployment-candidate
+          path: /tmp/deployment-image.tar
+          retention-days: 1
 
   # Publishes the multi-arch image (main and v* tags), only after every gate above
   # passed (OpenSpec ci-release-gates): `stable`, `latest` and the version tags never

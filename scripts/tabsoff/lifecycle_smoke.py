@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import sys
 import urllib.request
 import uuid
 import release
@@ -72,7 +73,10 @@ def main():
         try:
             release.run('docker', 'pull', BASE, timeout=300)
             dockerfile = root / 'Dockerfile'
-            dockerfile.write_text(f'FROM {BASE}\nLABEL tabsoff.lifecycle="{prefix}"\n')
+            source = sys.argv[1] if len(sys.argv) == 2 and sys.argv[1] else BASE
+            if any(c.isspace() for c in source):
+                raise ValueError('invalid candidate image')
+            dockerfile.write_text(f'FROM {source}\nLABEL tabsoff.lifecycle="{prefix}"\n')
             release.run('docker', 'build', '-t', candidate, str(root), timeout=180)
             for directory, suffix in ((release.PROD, 'prod'), (release.TEST, 'test')):
                 data = directory / 'data'
