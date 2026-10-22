@@ -4,37 +4,54 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: Promote the tested image or restore the previous paired backup
+        description: Promote the current tested candidate or restore the previous paired backup
         type: choice
         options: [promote, rollback]
         default: promote
-      image:
-        description: Exact staged ghcr.io/tabsoff/opentodo@sha256 digest (promote only)
-        type: string
-      revision:
-        description: Full source commit SHA shown by staging (promote only)
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: tabsoff-server-release-v2
+  group: tabsoff-production-request
   cancel-in-progress: false
 
 jobs:
-  release:
+  prepare:
     if: github.repository == 'tabsoff/OpenTodo' && github.ref == 'refs/heads/tabsoff'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: staging
+    outputs:
+      image: ${{ steps.candidate.outputs.image }}
+      revision: ${{ steps.candidate.outputs.revision }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Freeze and display the candidate before production approval
+        id: candidate
+        env:
+          RELEASE_ACTION: prepare
+          PRODUCTION_ACTION: ${{ inputs.action }}
+          DEPLOY_KEY: ${{ secrets.OPENTODO_DEPLOY_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.OPENTODO_DEPLOY_KNOWN_HOSTS }}
+        run: python3 scripts/tabsoff/client.py
+
+  release:
+    name: ${{ inputs.action }} ${{ needs.prepare.outputs.revision || 'previous snapshot' }}
+    needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment: production
+    concurrency:
+      group: tabsoff-release
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Apply explicitly requested production action
+      - name: Apply the approved action to the frozen candidate
         env:
           RELEASE_ACTION: ${{ inputs.action }}
-          RELEASE_IMAGE: ${{ inputs.image }}
-          RELEASE_REVISION: ${{ inputs.revision }}
+          RELEASE_IMAGE: ${{ needs.prepare.outputs.image }}
+          RELEASE_REVISION: ${{ needs.prepare.outputs.revision }}
           DEPLOY_KEY: ${{ secrets.OPENTODO_DEPLOY_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ vars.OPENTODO_DEPLOY_KNOWN_HOSTS }}
         run: python3 scripts/tabsoff/client.py

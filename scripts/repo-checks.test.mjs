@@ -193,7 +193,7 @@ test('the image, stable tag and release are published only after every gate', ()
     assert.ok(needsOf(jobs.release).includes(g), `the release job must need ${g}`)
   }
   assert.ok(needsOf(jobs.release).includes('docker'), 'the release waits for the image')
-  assert.match(jobs.docker, /^ {4}if: github\.event_name != 'pull_request'$/m, 'pull requests never publish')
+  assert.match(jobs.docker, /^ {4}if: github\.event_name != 'pull_request' && needs\.changes\.outputs\.code == 'true'$/m, 'only application changes outside pull requests publish')
   assert.match(jobs.docker, /type=raw,value=stable,/, 'stable moves only in the gated publish job')
 })
 

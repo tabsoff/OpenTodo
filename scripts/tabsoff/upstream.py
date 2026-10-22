@@ -20,9 +20,9 @@ def push_update(branch):
         raise ValueError('invalid update branch')
     with tempfile.TemporaryDirectory() as temp:
         key, hosts = Path(temp) / 'key', Path(temp) / 'known_hosts'
-        key.write_text(os.environ['UPSTREAM_PUSH_KEY'] + '\n')
+        key.write_text(os.environ['UPSTREAM_PUSH_KEY'].replace('\r\n', '\n').strip() + '\n', newline='\n')
         key.chmod(0o600)
-        hosts.write_text(os.environ['UPSTREAM_KNOWN_HOSTS'] + '\n')
+        hosts.write_text(os.environ['UPSTREAM_KNOWN_HOSTS'].replace('\r\n', '\n').strip() + '\n', newline='\n')
         command = ' '.join(shlex.quote(v) for v in [
             'ssh', '-i', str(key), '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes',
             '-o', 'StrictHostKeyChecking=yes', '-o', f'UserKnownHostsFile={hosts}',

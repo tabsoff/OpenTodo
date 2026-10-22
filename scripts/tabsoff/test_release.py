@@ -103,6 +103,54 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(maintenance.call_args_list, [unittest.mock.call(True), unittest.mock.call(False)])
             self.assertFalse((Path(temp) / 'pending.json').exists())
 
+    def test_retention_preserves_rollback_and_displaced_data_even_over_budget(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            backups, state = root / 'backups', root / 'state'
+            backups.mkdir()
+            state.mkdir()
+            snapshots = []
+            for number in range(5):
+                path = backups / f'20261022T12000{number}000000Z'
+                path.mkdir()
+                (path / 'payload').write_bytes(b'x' * 100)
+                snapshots.append(path)
+            (snapshots[0] / 'displaced-data-test').mkdir()
+            release.write_json(state / 'previous.json', {'snapshot': str(snapshots[1]), 'deployed': IMAGE})
+            release.write_json(state / 'retention.json', {'snapshots': 1, 'max_bytes': 1})
+            with patch.object(release, 'STATE', state), patch.object(release, 'BACKUPS', backups):
+                result = release.prune_snapshots()
+            self.assertTrue(snapshots[0].exists())
+            self.assertTrue(snapshots[1].exists())
+            self.assertFalse(any(p.exists() for p in snapshots[2:]))
+            self.assertTrue(result['snapshot_budget_exceeded'])
+
+    def test_image_cleanup_only_removes_tracked_unreferenced_digests(self):
+        unused = 'ghcr.io/tabsoff/opentodo@sha256:' + 'c' * 64
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            backups = root / 'backups'
+            backups.mkdir()
+            release.write_json(root / 'managed-images.json', [IMAGE, unused])
+            calls = []
+            def docker(*args):
+                calls.append(args)
+                if args[:3] == ('docker', 'image', 'inspect'):
+                    return 'protected-id' if args[3] == IMAGE else 'unused-id'
+                return ''
+            with patch.object(release, 'STATE', root), patch.object(release, 'BACKUPS', backups), \
+                    patch.object(release, 'current', return_value=IMAGE), \
+                    patch.object(release, 'run', side_effect=docker):
+                self.assertEqual(release.prune_images(), 1)
+            self.assertIn(('docker', 'image', 'rm', unused), calls)
+            self.assertNotIn(('docker', 'image', 'rm', IMAGE), calls)
+            self.assertFalse(any('prune' in command or '--force' in command for command in calls))
+            self.assertEqual(release.read_json(root / 'managed-images.json'), [IMAGE])
+
+    def test_optional_cleanup_failure_does_not_fail_a_successful_release(self):
+        with patch.object(release, 'prune_snapshots', side_effect=OSError('disk')):
+            self.assertIn('warning', release.housekeeping())
+
 
 if __name__ == '__main__':
     unittest.main()
