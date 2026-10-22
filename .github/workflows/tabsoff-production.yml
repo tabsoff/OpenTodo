@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: tabsoff-server-release
+  group: tabsoff-server-release-v2
   cancel-in-progress: false
 
 jobs:

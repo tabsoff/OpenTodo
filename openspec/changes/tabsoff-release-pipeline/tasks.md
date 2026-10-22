@@ -11,4 +11,4 @@
 
 ## 3. Integration
 
-- [ ] 3.1 Run make check and full upstream CI on the fork, validate OpenSpec, then verify a successful custom build reaches the test instance with production unchanged.
+- [x] 3.1 Run make check and full upstream CI on the fork, validate OpenSpec, then verify a successful custom build reaches the test instance with production unchanged.
