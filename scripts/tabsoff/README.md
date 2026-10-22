@@ -38,6 +38,7 @@ GitHub configuration:
 - Environment secrets named `OPENTODO_DEPLOY_KEY`: separate private keys in `staging` and `production` (never commit them or set a repository-wide fallback).
 - Repository variable `OPENTODO_DEPLOY_KNOWN_HOSTS`: operator-verified SSH host key for 89.223.70.53.
 - Environments `staging` and `production`; production requires the owner to review and only permits the `tabsoff` branch. Self-review is allowed for a single-person installation.
+- Environment `maintenance`, restricted to `tabsoff`, stores `UPSTREAM_PUSH_KEY`: a dedicated write-enabled deploy key for this repository alone. It permits upstream changes to workflow files without a broad personal token. Variable `UPSTREAM_KNOWN_HOSTS` pins GitHub's SSH host key obtained from its official HTTPS metadata API. This key has no server access.
 - Registry credentials use each workflow's short-lived `GITHUB_TOKEN`; the server uses a temporary Docker login and removes it after pulling. Application data and backups never leave the VPS.
 
-Verify helper tests with `python3 -m unittest discover -s scripts/tabsoff -p test_release.py -v`. Verify native restore against a disposable synthetic database using the installed image before enabling production promotion. Keep root recovery access independent of the workflow key. For key rotation, replace the restricted authorized key and GitHub secret together.
+Verify helper tests with `python3 -m unittest discover -s scripts/tabsoff -p 'test_*.py' -v`. Verify native restore against a disposable synthetic database using the installed image before enabling production promotion. Keep root recovery access independent of the workflow key. For key rotation, replace the restricted authorized key and GitHub secret together.

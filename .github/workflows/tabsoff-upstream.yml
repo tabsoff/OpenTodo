@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
   actions: write # Explicit CI dispatch: GITHUB_TOKEN-created PRs do not trigger workflows.
 
@@ -19,6 +19,7 @@ jobs:
     if: github.repository == 'tabsoff/OpenTodo' && github.ref == 'refs/heads/tabsoff'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    environment: maintenance
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -26,4 +27,6 @@ jobs:
       - name: Open a stable upstream release pull request without merging it
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPSTREAM_PUSH_KEY: ${{ secrets.UPSTREAM_PUSH_KEY }}
+          UPSTREAM_KNOWN_HOSTS: ${{ vars.UPSTREAM_KNOWN_HOSTS }}
         run: python3 scripts/tabsoff/upstream.py
