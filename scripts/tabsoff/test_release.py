@@ -83,6 +83,26 @@ class ReleaseTests(unittest.TestCase):
                 release.promote(request)
             maintenance.assert_not_called()
 
+    def test_failed_candidate_restores_paired_snapshot_before_reopening_site(self):
+        request = {'action': 'promote', 'image': IMAGE, 'revision': REV}
+        staged = {'image': IMAGE, 'revision': REV, 'baseline': 'old'}
+        with tempfile.TemporaryDirectory() as temp, \
+                patch.object(release, 'STATE', Path(temp)), \
+                patch.object(release, 'read_json', return_value=staged), \
+                patch.object(release, 'current', side_effect=[IMAGE, 'old']), \
+                patch.object(release, 'space_check'), \
+                patch.object(release, 'compose'), \
+                patch.object(release, 'set_image'), \
+                patch.object(release, 'snapshot', return_value=Path(temp) / 'snapshot') as snapshot, \
+                patch.object(release, 'healthy', side_effect=[None, RuntimeError('unhealthy')]), \
+                patch.object(release, 'restore') as restore, \
+                patch.object(release, 'maintenance') as maintenance:
+            with self.assertRaisesRegex(RuntimeError, 'unhealthy'):
+                release.promote(request)
+            restore.assert_called_once_with(snapshot.return_value)
+            self.assertEqual(maintenance.call_args_list, [unittest.mock.call(True), unittest.mock.call(False)])
+            self.assertFalse((Path(temp) / 'pending.json').exists())
+
 
 if __name__ == '__main__':
     unittest.main()

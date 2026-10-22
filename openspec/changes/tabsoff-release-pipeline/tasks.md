@@ -6,8 +6,8 @@
 
 ## 2. Release tooling
 
-- [ ] 2.1 Implement restricted deployment helper, migration rehearsal, paired backup/restore and operator runbook; verify rejection tests and an isolated Docker restore with a rotated sync generation.
-- [ ] 2.2 Add CI image tags, staging/manual production workflows and stable-release PR automation; verify repository checks, workflow validation and configured restricted credentials.
+- [x] 2.1 Implement restricted deployment helper, migration rehearsal, paired backup/restore and operator runbook; verify rejection tests and an isolated Docker restore with a rotated sync generation.
+- [x] 2.2 Add CI image tags, staging/manual production workflows and stable-release PR automation; verify repository checks, workflow validation and configured restricted credentials.
 
 ## 3. Integration
 

@@ -21,7 +21,7 @@ def main():
         print(tag + ' is already included')
         return
     branch = 'upstream/' + tag
-    existing = json.loads(run('gh', 'pr', 'list', '--repo', 'tabsoff/OpenTodo', '--state', 'open',
+    existing = json.loads(run('gh', 'pr', 'list', '--repo', 'tabsoff/OpenTodo', '--state', 'all',
                               '--base', 'tabsoff', '--head', branch, '--json', 'url'))
     if existing:
         print(existing[0]['url'])

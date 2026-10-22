@@ -258,6 +258,7 @@ def promote(request):
     maintenance(True)
     target = None
     try:
+        write_json(STATE / 'pending.json', {'snapshot': None, 'phase': 'snapshot'})
         compose(PROD, 'stop')
         target = snapshot()
         write_json(STATE / 'pending.json', {'snapshot': str(target)})
@@ -274,8 +275,8 @@ def promote(request):
         (STATE / 'pending.json').unlink(missing_ok=True)
         raise
     write_json(STATE / 'previous.json', {'snapshot': str(target), 'deployed': request['image']})
-    (STATE / 'pending.json').unlink(missing_ok=True)
     maintenance(False)
+    (STATE / 'pending.json').unlink(missing_ok=True)
     prune_snapshots()
     return {'status': 'promoted', 'image': request['image'], 'backup': target.name}
 
@@ -317,8 +318,9 @@ def main():
     enforce_role(action, mode)
     STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
     BACKUPS.mkdir(mode=0o700, parents=True, exist_ok=True)
-    with (STATE / 'lock').open('w') as lock:
+    with (STATE / 'lock').open('w') as lock, Path('/run/lock/tabsoff-backup.lock').open('a') as backup_lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.flock(backup_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if (STATE / 'pending.json').exists() and action != 'status':
             raise RuntimeError('unfinished deployment: operator recovery required; see pending.json')
         if action == 'stage':
