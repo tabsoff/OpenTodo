@@ -1,0 +1,68 @@
+name: Tabsoff retry staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full commit SHA of a successful tabsoff push CI run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+# A distinct queue allows recovery from a stuck automatic workflow. The server
+# also takes an exclusive lock shared with staging, production and backups.
+concurrency:
+  group: tabsoff-staging-retry
+  cancel-in-progress: false
+
+jobs:
+  retry:
+    if: github.repository == 'tabsoff/OpenTodo' && github.ref == 'refs/heads/tabsoff'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: staging
+    steps:
+      # Execute the trusted controller, never code from a caller-supplied SHA.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Require a successful main-branch CI run for the requested source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_REVISION: ${{ inputs.revision }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, urllib.request
+          revision = os.environ['RELEASE_REVISION']
+          if not re.fullmatch(r'[0-9a-f]{40}', revision):
+              raise SystemExit('Expected a full commit SHA')
+          url = ('https://api.github.com/repos/tabsoff/OpenTodo/actions/workflows/ci.yml/runs'
+                 '?event=push&branch=tabsoff&head_sha=' + revision + '&per_page=100')
+          request = urllib.request.Request(url, headers={
+              'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+              'Accept': 'application/vnd.github+json'})
+          with urllib.request.urlopen(request, timeout=30) as response:
+              runs = json.load(response)['workflow_runs']
+          if not any(r['head_sha'] == revision and r['event'] == 'push' and
+                     r['head_branch'] == 'tabsoff' and r['status'] == 'completed' and
+                     r['conclusion'] == 'success' for r in runs):
+              raise SystemExit('This source revision has not passed tabsoff push CI')
+          print('Verified successful CI for ' + revision)
+          PY
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Retry deployment of the existing verified image
+        env:
+          RELEASE_ACTION: stage
+          RELEASE_IMAGE: ""
+          RELEASE_REVISION: ${{ inputs.revision }}
+          DEPLOY_KEY: ${{ secrets.OPENTODO_DEPLOY_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.OPENTODO_DEPLOY_KNOWN_HOSTS }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/tabsoff/client.py

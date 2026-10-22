@@ -1,13 +1,34 @@
 #!/usr/bin/env python3
 """Propose upstream release commits; do not reset the downstream branch."""
 import json
+import os
 from pathlib import Path
 import re
+import shlex
 import subprocess
+import tempfile
 
 
 def run(*args):
     return subprocess.check_output(args, text=True).strip()
+
+
+def push_update(branch):
+    # GITHUB_TOKEN cannot write changed workflow files. A deploy key is limited
+    # to this repository and cannot access the VPS or other repositories.
+    if not re.fullmatch(r'upstream/v\d+\.\d+\.\d+', branch):
+        raise ValueError('invalid update branch')
+    with tempfile.TemporaryDirectory() as temp:
+        key, hosts = Path(temp) / 'key', Path(temp) / 'known_hosts'
+        key.write_text(os.environ['UPSTREAM_PUSH_KEY'] + '\n')
+        key.chmod(0o600)
+        hosts.write_text(os.environ['UPSTREAM_KNOWN_HOSTS'] + '\n')
+        command = ' '.join(shlex.quote(v) for v in [
+            'ssh', '-i', str(key), '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes',
+            '-o', 'StrictHostKeyChecking=yes', '-o', f'UserKnownHostsFile={hosts}',
+            '-o', 'ConnectTimeout=15'])
+        subprocess.run(['git', 'push', 'git@github.com:tabsoff/OpenTodo.git', 'HEAD:refs/heads/' + branch],
+                       env=dict(os.environ, GIT_SSH_COMMAND=command), check=True, timeout=120)
 
 
 def main():
@@ -36,7 +57,7 @@ def main():
         # A release-only head exposes the conflict in GitHub without discarding custom work.
         run('git', 'checkout', '--detach', commit)
     # No --force and no release tag push.
-    run('git', 'push', 'origin', 'HEAD:refs/heads/' + branch)
+    push_update(branch)
     body = Path('upstream-update-body.md')
     body.write_text(f'Integrate official OpenTodo {tag} into the downstream branch.\n\n'
                     f'Official release: {release["html_url"]}\n\n'
