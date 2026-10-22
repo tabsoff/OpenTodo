@@ -294,11 +294,13 @@ def rollback():
     if current(PROD) != previous['deployed']:
         raise RuntimeError('production changed since the recorded deployment; operator recovery required')
     space_check()
+    write_json(STATE / 'pending.json', {'snapshot': previous['snapshot'], 'phase': 'rollback'})
     maintenance(True)
     restore(Path(previous['snapshot']))
     (STATE / 'staged.json').unlink(missing_ok=True)
     (STATE / 'previous.json').unlink()
     maintenance(False)
+    (STATE / 'pending.json').unlink(missing_ok=True)
     return {'status': 'rolled back', 'image': current(PROD)}
 
 
