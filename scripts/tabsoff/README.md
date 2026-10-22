@@ -10,7 +10,9 @@ This directory is downstream operator tooling, outside the application runtime.
 4. Verify the feature on test. Find `image` and `revision` in the successful staging run output (or ask the operator to run the helper's `status` action).
 5. Open **Actions → Tabsoff production → Run workflow**, choose `tabsoff`, `promote`, and paste those exact two values. Approve the production environment. Only that previously staged digest can be promoted. Production stays on <https://todo.tabsoff.ru>.
 
-Never use Portainer's **Pull latest image** for this stack or manually edit the image behind the helper: that bypasses review and invalidates the staged baseline. Portainer remains useful for status and logs. The helper keeps its saved stack source consistent with `/opt/opentodo/docker-compose.yml`.
+Release images are pinned by digest. Use the release workflows for updates; manual image changes invalidate the staged baseline. Portainer remains useful for status and logs. The helper keeps its saved stack source consistent with `/opt/opentodo/docker-compose.yml`.
+
+If an automatic staging attempt is stuck or fails because of runner/SSH transport, **Tabsoff retry staging** accepts the full source SHA of an already successful `tabsoff` push CI run. It reuses the published image without rebuilding or publishing. The controller validates CI through GitHub's API, uses the staging-only key, and shares the server's exclusive lock with all other deployments. Execute the workflow from `tabsoff`.
 
 ## Official updates
 
