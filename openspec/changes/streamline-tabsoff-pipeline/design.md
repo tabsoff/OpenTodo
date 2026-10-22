@@ -16,6 +16,7 @@ Reduce redundant runner work and manual release inputs while keeping trusted pos
 - Add a root-only installer that installs reviewed repository code atomically, records a normalized SHA256 and keeps the previous executable. CI reads helper checksum from status and rejects mismatched controllers. Workflows cannot install root code.
 - Retain at most three ordinary release snapshots, with a configurable disk budget; always protect the active rollback snapshot and displaced data. Prune only images recorded as managed by this helper, never unrelated containers/images; protect current production, staging and every retained recovery image. Treat cleanup as post-deployment housekeeping and report incomplete cleanup without invalidating a successful release.
 - Run the real helper against temporary Compose projects and directories in Linux CI. Substitute only fixed host paths, Caddy/Portainer integration and registry transport; use real containers, SQLite, native restore and HTTP mutations. Use a named failed candidate entrypoint to verify automatic recovery. Never mount real app data.
+- Application runs transfer the built/scanned candidate image to that lifecycle test as a one-day artifact. Operator-only runs exercise the helper with a pinned baseline, without an application build.
 
 ## Risks / Trade-offs
 
