@@ -304,13 +304,17 @@ def rollback():
 def main():
     import fcntl  # Linux only; pure validation tests can run on Windows.
     os.umask(0o077)
-    if os.geteuid() != 0 or len(sys.argv) != 1:
+    if os.geteuid() != 0 or len(sys.argv) > 2:
         raise ValueError('root operator helper accepts JSON stdin only')
+    mode = sys.argv[1] if len(sys.argv) == 2 else 'operator'
+    if mode not in ('operator', '--stage-only', '--production-only'):
+        raise ValueError('invalid operator mode')
     raw = sys.stdin.buffer.read(8193)
     if len(raw) > 8192:
         raise ValueError('request too large')
     request = json.loads(raw)
     action = validate(request)
+    enforce_role(action, mode)
     STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
     BACKUPS.mkdir(mode=0o700, parents=True, exist_ok=True)
     with (STATE / 'lock').open('w') as lock:
@@ -328,6 +332,13 @@ def main():
                       'staged': read_json(STATE / 'staged.json') if (STATE / 'staged.json').exists() else None,
                       'pending': (STATE / 'pending.json').exists()}
         print(json.dumps(result))
+
+
+def enforce_role(action, mode):
+    if mode == '--stage-only' and action not in ('stage', 'status'):
+        raise ValueError('staging key cannot modify production')
+    if mode == '--production-only' and action not in ('promote', 'rollback', 'status'):
+        raise ValueError('production key cannot select untested images')
 
 
 if __name__ == '__main__':

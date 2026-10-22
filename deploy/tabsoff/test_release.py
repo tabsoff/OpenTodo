@@ -17,6 +17,14 @@ REV = 'b' * 40
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_staging_key_cannot_promote_or_rollback(self):
+        for action in ('promote', 'rollback'):
+            with self.assertRaises(ValueError):
+                release.enforce_role(action, '--stage-only')
+        with self.assertRaises(ValueError):
+            release.enforce_role('stage', '--production-only')
+        release.enforce_role('status', '--stage-only')
+
     def test_rejects_arbitrary_images_actions_and_credential_smuggling(self):
         invalid = [
             {'action': 'shell'}, {'action': 'rollback', 'image': IMAGE},

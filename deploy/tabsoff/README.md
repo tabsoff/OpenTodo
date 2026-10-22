@@ -28,14 +28,14 @@ After a killed/interrupted deployment, `/var/lib/opentodo-release/pending.json` 
 
 ## Installation and credentials
 
-The root helper is installed manually as `/usr/local/sbin/opentodo-release` (root-owned, mode 0755). Workflows cannot overwrite it. `/etc/caddy/opentodo-release.caddy` is imported inside the production site block; empty normally, a 503 response during maintenance. Test uses loopback port 8081 and a separate Caddy login; production uses 8080.
+The root helper is installed manually as `/usr/local/sbin/opentodo-release` (root-owned, mode 0755). Workflows cannot overwrite it. `/etc/caddy/opentodo-release.caddy` is imported inside the production site block; normally it removes the maintenance header, and returns 503 during maintenance. Test uses loopback port 8081 and a separate Caddy login; production uses 8080.
 
-Create Linux user `opentodo-deploy` with no password and a dedicated SSH key. Its authorized key uses `restrict,command="sudo -n /usr/local/sbin/opentodo-release"`; sudo permits that command **with no command-line arguments only**. It receives bounded JSON on stdin and permits only status, stage, promote and rollback. No shell, forwarding or arbitrary image registry is allowed.
+Create Linux user `opentodo-deploy` with no password and two dedicated SSH keys. Each authorized key uses `restrict,command="sudo -n /usr/local/sbin/opentodo-release --stage-only"` or `--production-only`; sudo permits exactly these two command/argument combinations. Each receives bounded JSON on stdin. The staging key cannot promote or roll back production; the production key cannot select untested images. No shell, forwarding or arbitrary image registry is allowed.
 
 GitHub configuration:
 
 - Default branch `tabsoff`; allow Actions to create PRs.
-- Repository secret `OPENTODO_DEPLOY_KEY`: dedicated private key (never commit it).
+- Environment secrets named `OPENTODO_DEPLOY_KEY`: separate private keys in `staging` and `production` (never commit them or set a repository-wide fallback).
 - Repository variable `OPENTODO_DEPLOY_KNOWN_HOSTS`: operator-verified SSH host key for 89.223.70.53.
 - Environments `staging` and `production`; production requires the owner to review and only permits the `tabsoff` branch. Self-review is allowed for a single-person installation.
 - Registry credentials use each workflow's short-lived `GITHUB_TOKEN`; the server uses a temporary Docker login and removes it after pulling. Application data and backups never leave the VPS.

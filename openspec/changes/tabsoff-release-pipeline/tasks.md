@@ -2,7 +2,7 @@
 
 ## 1. Test installation
 
-- [ ] 1.1 Install isolated test Compose/Caddy configuration and record access instructions; verify HTTPS health and disjoint data mounts while production stays healthy.
+- [x] 1.1 Install isolated test Compose/Caddy configuration and record access instructions; verify HTTPS health and disjoint data mounts while production stays healthy.
 
 ## 2. Release tooling
 
