@@ -23,6 +23,11 @@ BACKUPS = Path('/var/backups/opentodo-releases')
 PROD = Path('/opt/opentodo')
 TEST = Path('/opt/opentodo-test')
 SNIPPET = Path('/etc/caddy/opentodo-release.caddy')
+MIGRATION_CONTAINER = 'opentodo-migration-check'
+
+
+def helper_checksum():
+    return hashlib.sha256(Path(__file__).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
 
 
 def run(*args, input=None, env=None, timeout=180):
@@ -178,11 +183,11 @@ def rehearsal(image):
         backup_db(PROD / 'data/opentodo.db', data / 'opentodo.db')
         own_data(data)
         try:
-            run('docker', 'run', '-d', '--name', 'opentodo-migration-check', '--network', 'none',
+            run('docker', 'run', '-d', '--name', MIGRATION_CONTAINER, '--network', 'none',
                 '--memory', '192m', '-v', f'{data}:/data', image)
-            healthy('opentodo-migration-check')
+            healthy(MIGRATION_CONTAINER)
         finally:
-            run('docker', 'rm', '-f', 'opentodo-migration-check')
+            run('docker', 'rm', '-f', MIGRATION_CONTAINER)
 
 
 def pull(request):
@@ -195,6 +200,9 @@ def pull(request):
                    '{{index .Config.Labels "org.opencontainers.image.revision"}}')
     if revision != request['revision']:
         raise RuntimeError('image revision differs from requested source commit')
+    tracked = STATE / 'managed-images.json'
+    images = read_json(tracked) if tracked.exists() else []
+    write_json(tracked, sorted(set(images) | {request['image']}))
 
 
 def stage(request):
@@ -206,7 +214,8 @@ def stage(request):
     compose(TEST, 'up', '-d', '--pull', 'never')
     healthy('opentodo-test')
     write_json(STATE / 'staged.json', {k: request[k] for k in ('image', 'revision')} | {'baseline': baseline})
-    return {'status': 'staged', 'image': request['image'], 'revision': request['revision']}
+    return {'status': 'staged', 'image': request['image'], 'revision': request['revision'],
+            'cleanup': housekeeping()}
 
 
 def snapshot():
@@ -220,6 +229,7 @@ def snapshot():
     backup_db(PROD / 'data/opentodo.db', target / 'opentodo.db')
     version = run('docker', 'run', '--rm', '--network', 'none', image, 'version')
     native_archive(target / 'opentodo.db', target / 'restore.tar.gz', version)
+    (target / 'opentodo.db').unlink()  # The full archive and native restore archive already contain it.
     write_json(target / 'metadata.json', {'image': image, 'created': stamp})
     return target
 
@@ -277,16 +287,84 @@ def promote(request):
     write_json(STATE / 'previous.json', {'snapshot': str(target), 'deployed': request['image']})
     maintenance(False)
     (STATE / 'pending.json').unlink(missing_ok=True)
-    prune_snapshots()
-    return {'status': 'promoted', 'image': request['image'], 'backup': target.name}
+    return {'status': 'promoted', 'image': request['image'], 'backup': target.name,
+            'cleanup': housekeeping()}
 
 
 def prune_snapshots():
     snapshots = sorted(p for p in BACKUPS.iterdir() if re.fullmatch(r'\d{8}T\d{12}Z', p.name) and p.is_dir())
-    # Displaced data is retained for deliberate operator review, never auto-pruned.
-    for path in snapshots[:-3]:
-        if not list(path.glob('displaced-data-*')):
+    policy_path = STATE / 'retention.json'
+    policy = read_json(policy_path) if policy_path.exists() else {}
+    keep, budget = policy.get('snapshots', 3), policy.get('max_bytes', 1024**3)
+    if type(keep) is not int or keep < 1 or type(budget) is not int or budget < 1:
+        raise ValueError('invalid root-owned retention policy')
+    previous = read_json(STATE / 'previous.json') if (STATE / 'previous.json').exists() else {}
+    protected = {Path(previous['snapshot'])} if previous else set()
+    protected.update(p for p in snapshots if list(p.glob('displaced-data-*')))
+    def size(path):
+        return sum(p.stat().st_size for p in path.rglob('*') if p.is_file())
+    sizes = {p: size(p) for p in snapshots}
+    total, count = sum(sizes.values()), len(snapshots)
+    for path in snapshots:
+        if path not in protected and (count > keep or total > budget):
             shutil.rmtree(path)
+            total, count = total - sizes[path], count - 1
+    return {'snapshot_bytes': total, 'snapshot_budget_exceeded': total > budget}
+
+
+def prune_images():
+    tracked = STATE / 'managed-images.json'
+    if not tracked.exists():
+        return 0
+    images = set(read_json(tracked))
+    protected = {current(PROD), current(TEST)}
+    for metadata in BACKUPS.glob('*/metadata.json'):
+        protected.add(read_json(metadata)['image'])
+    for name in ('staged.json',):
+        if (STATE / name).exists():
+            value = read_json(STATE / name)
+            protected.update((value['image'], value['baseline']))
+    def image_id(image):
+        try:
+            return run('docker', 'image', 'inspect', image, '--format', '{{.Id}}')
+        except RuntimeError:
+            return None
+    protected_ids = {image_id(image) for image in protected}
+    for container in run('docker', 'ps', '-aq').splitlines():
+        protected_ids.add(run('docker', 'inspect', container, '--format', '{{.Image}}'))
+    removed = set()
+    for image in images - protected:
+        if not isinstance(image, str) or not IMAGE.fullmatch(image):
+            raise ValueError('invalid managed image inventory')
+        identifier = image_id(image)
+        if identifier is None:
+            removed.add(image)
+        elif identifier not in protected_ids:
+            run('docker', 'image', 'rm', image)  # No --force, no global pruning.
+            removed.add(image)
+    write_json(tracked, sorted(images - removed))
+    return len(removed)
+
+
+def housekeeping():
+    try:
+        return prune_snapshots() | {'images_removed': prune_images()}
+    except Exception:
+        # A successful release stays successful when optional cleanup is unavailable.
+        return {'warning': 'cleanup incomplete; inspect retention and disk usage on server'}
+
+
+def lock_wait(lock, seconds=60):
+    import fcntl
+    deadline = time.monotonic() + seconds
+    while True:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return
+        except BlockingIOError:
+            if time.monotonic() >= deadline:
+                raise RuntimeError('another deployment or backup holds the lock; retry later')
+            time.sleep(1)
 
 
 def rollback():
@@ -321,8 +399,8 @@ def main():
     STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
     BACKUPS.mkdir(mode=0o700, parents=True, exist_ok=True)
     with (STATE / 'lock').open('w') as lock, Path('/run/lock/tabsoff-backup.lock').open('a') as backup_lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        fcntl.flock(backup_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        lock_wait(lock)
+        lock_wait(backup_lock)
         if (STATE / 'pending.json').exists() and action != 'status':
             raise RuntimeError('unfinished deployment: operator recovery required; see pending.json')
         if action == 'stage':
@@ -334,6 +412,8 @@ def main():
         else:
             result = {'production': current(PROD), 'test': current(TEST),
                       'staged': read_json(STATE / 'staged.json') if (STATE / 'staged.json').exists() else None,
+                      'previous': read_json(STATE / 'previous.json') if (STATE / 'previous.json').exists() else None,
+                      'helper_sha256': helper_checksum(),
                       'pending': (STATE / 'pending.json').exists()}
         print(json.dumps(result))
 

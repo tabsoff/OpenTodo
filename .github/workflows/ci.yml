@@ -24,11 +24,8 @@ env:
 # ci-release-gates; scripts/repo-checks.test.mjs checks all three). Dependabot
 # (.github/dependabot.yml) proposes the updates.
 jobs:
-  # Path filters (OpenSpec site-bundle D7): which inputs a pull request touches,
-  # from a plain `git diff`, no third-party action. Pushes to main and tags run
-  # everything. `code` gates the Go, cross-compile, layout, UI and image jobs;
-  # docs-only changes still run the web job (docs check), the docs website check
-  # and the site bundle preview.
+  # Downstream selection also handles push ranges. Unknown inputs, workflow edits,
+  # official integration, tags and explicit dispatch receive the full suite.
   changes:
     name: Changed paths
     runs-on: ubuntu-latest
@@ -51,20 +48,27 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           BASE: ${{ github.event.pull_request.base.sha }}
-        run: |
-          if [ "$EVENT" != "pull_request" ]; then
-            echo "code=true" >> "$GITHUB_OUTPUT"
-            echo "docs=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          git diff --name-only "$BASE"...HEAD > changed.txt
-          cat changed.txt
-          ./scripts/ci-changes.sh < changed.txt >> "$GITHUB_OUTPUT"
+          BEFORE: ${{ github.event.before }}
+          REF: ${{ github.ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: python3 scripts/tabsoff/ci_profile.py >> "$GITHUB_OUTPUT"
+
+  deployment:
+    name: Deployment lifecycle (synthetic data)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: changes
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Exercise real promotion and recovery in isolated containers
+        run: sudo python3 scripts/tabsoff/lifecycle_smoke.py
 
   web:
     name: Web (typecheck, test, build)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    needs: changes
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.docs == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -220,7 +224,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [changes, cli]
-    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.cli.result != 'failure' }}
+    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.cli.result != 'failure' && (needs.changes.outputs.code == 'true' || needs.changes.outputs.docs == 'true') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -344,6 +348,8 @@ jobs:
     name: Browser extension (test, package)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -362,6 +368,8 @@ jobs:
     name: Agent skill (package)
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: make skill
@@ -379,6 +387,8 @@ jobs:
     name: Checks (gofmt, OpenSpec, UI lint, translations, deploy templates, repository)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: changes
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.docs == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -445,10 +455,10 @@ jobs:
   # with cosign (Sigstore, GitHub OIDC). See docs/self-hosting/verify.md.
   docker:
     name: Docker image (publish, sign)
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    needs: [changes, web, server, layout, docs-site, site-bundle, ui-check, cli, extension, skill, checks, image]
+    needs: [changes, deployment, web, server, layout, docs-site, site-bundle, ui-check, cli, extension, skill, checks, image]
     permissions:
       contents: read
       packages: write
@@ -512,7 +522,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [changes, web, server, layout, docs-site, site-bundle, ui-check, cli, extension, skill, checks, image, docker]
+    needs: [changes, deployment, web, server, layout, docs-site, site-bundle, ui-check, cli, extension, skill, checks, image, docker]
     permissions:
       contents: write
       id-token: write # build provenance (Sigstore)
