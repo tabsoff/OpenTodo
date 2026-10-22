@@ -40,4 +40,4 @@ GitHub configuration:
 - Environments `staging` and `production`; production requires the owner to review and only permits the `tabsoff` branch. Self-review is allowed for a single-person installation.
 - Registry credentials use each workflow's short-lived `GITHUB_TOKEN`; the server uses a temporary Docker login and removes it after pulling. Application data and backups never leave the VPS.
 
-Verify helper tests with `python3 -m unittest discover -s deploy/tabsoff -p test_release.py -v`. Verify native restore against a disposable synthetic database using the installed image before enabling production promotion. Keep root recovery access independent of the workflow key. For key rotation, replace the restricted authorized key and GitHub secret together.
+Verify helper tests with `python3 -m unittest discover -s scripts/tabsoff -p test_release.py -v`. Verify native restore against a disposable synthetic database using the installed image before enabling production promotion. Keep root recovery access independent of the workflow key. For key rotation, replace the restricted authorized key and GitHub secret together.

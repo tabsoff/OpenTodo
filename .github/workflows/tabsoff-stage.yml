@@ -42,4 +42,4 @@ jobs:
           DEPLOY_KEY: ${{ secrets.OPENTODO_DEPLOY_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ vars.OPENTODO_DEPLOY_KNOWN_HOSTS }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 deploy/tabsoff/client.py
+        run: python3 scripts/tabsoff/client.py

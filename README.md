@@ -4,6 +4,8 @@
 
 <h1 align="center">OpenTodo</h1>
 
+Tabsoff fork: see the [customization and release runbook](scripts/tabsoff/README.md) for the test site, official update PRs, reviewed deployments and recovery.
+
 <p align="center"><strong>A to-do app that runs on your own server.</strong><br>
 Plan your day, keep projects in order, set reminders and share lists with your family or your team. Works on your phone and your computer, even offline. No monthly plan per person, and your tasks stay with you.</p>
 

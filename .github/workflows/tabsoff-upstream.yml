@@ -26,4 +26,4 @@ jobs:
       - name: Open a stable upstream release pull request without merging it
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 deploy/tabsoff/upstream.py
+        run: python3 scripts/tabsoff/upstream.py
