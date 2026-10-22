@@ -37,6 +37,7 @@ const table = [
   [['scripts/deploy-check.mjs'], { code: 'true', docs: 'false' }],
   [['scripts/ci-changes.sh'], { code: 'true', docs: 'false' }],
   [['scripts/repo-checks.test.mjs'], { code: 'true', docs: 'false' }],
+  [['scripts/tabsoff/release.py'], { code: 'true', docs: 'false' }],
   [['docker-compose.yml'], { code: 'true', docs: 'false' }],
   [['scripts/coolify-template-check.mjs'], { code: 'true', docs: 'false' }],
   [['scripts/e2e-views.mjs'], { code: 'true', docs: 'false' }],

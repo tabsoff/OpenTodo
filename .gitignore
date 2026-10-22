@@ -35,3 +35,4 @@ coverage.out
 /docs-report/
 /web/storybook-static/
 /tmp/
+__pycache__/
