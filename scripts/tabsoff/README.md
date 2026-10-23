@@ -4,7 +4,9 @@ This directory is downstream operator tooling, outside the application runtime.
 
 ## Everyday changes
 
-1. Branch from `tabsoff`, make one focused customization and open a pull request back to `tabsoff`.
+Start with the agreed [local-preview development workflow](DEVELOPMENT.md). The [Russian user guide](USER-GUIDE.md) covers preview, review, staging and release. These documents contain no credentials.
+
+1. Branch from `tabsoff`, iterate locally with separate synthetic data, and show the result to the user. Open a pull request back to `tabsoff` after the user approves the local result; do not publish every intermediate edit or create a PR for each preview iteration.
 2. Merge after CI is green. Application changes pass the original upstream tests/build/security gates and publish `ghcr.io/tabsoff/opentodo:sha-<full-commit>`. Operator-only edits run Python/repository tests and a disposable deployment lifecycle check, without rebuilding the application. Documentation changes run documentation checks; unknown inputs, CI edits, release tags, manual full CI and official release integration run the full suite. Pushes are classified against their before/after commits, not merely their event type.
 3. **Tabsoff staging** resolves that tag to an immutable digest, privately rehearses production database migrations without networking, and updates <https://todo-test.tabsoff.ru>. Its data lives in `/opt/opentodo-test/data`, separate from `/opt/opentodo/data`. Use synthetic tasks there. The initial test owner is created separately; its browser login and local offline storage are independent of production.
 4. Verify the feature on test.
