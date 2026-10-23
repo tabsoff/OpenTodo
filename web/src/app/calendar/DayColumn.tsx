@@ -8,7 +8,9 @@ import { formatMinutes } from '../../lib/duration'
 import { t } from '../../lib/i18n'
 import type { PlacedBlock, Overflow } from '../../lib/layout'
 import type { CalendarSubscription, Project, Task } from '../../lib/types'
-import { hueFor, Tooltip } from '../../ui'
+import { Button, Tooltip } from '../../ui'
+import { calendarTaskHue } from './taskColor'
+import { useGridCreate } from './useGridCreate'
 import { EventBlockView, EventChip } from '../CalendarEvents'
 import type { useCalendarDrag } from '../calendarDrag'
 import { formatTime, GRID_HEIGHT, PX_PER_MIN, RESIZE_ZONE_PX, type Preview } from './grid'
@@ -27,7 +29,8 @@ export function HourGutter() {
   )
 }
 
-export function DayHeader({ day, today, tasks, prefs, showName, selectedId, subMap, zone, laneTarget, onSelect, onOpen, onPointerDown, projectMap }: {
+export function DayHeader({ day, today, tasks, prefs, showName, selectedId, subMap, zone, laneTarget, onSelect, onOpen, onPointerDown, projectMap, onCreate }: {
+  onCreate: () => void
   day: DayData
   today: string
   tasks: Task[]
@@ -46,8 +49,10 @@ export function DayHeader({ day, today, tasks, prefs, showName, selectedId, subM
   const [y, m, d] = day.date.split('-').map(Number)
   const weekdayName = new Intl.DateTimeFormat(dateLocaleOf(), { weekday: 'short' }).format(new Date(y, m - 1, d))
   return (
-    <div className="min-w-0 flex-1 border-l border-default px-1 pb-1 pt-1" data-day-header={day.date}>
-      <div className="flex items-baseline justify-between gap-1 px-1">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col border-l border-default px-1 pb-1 pt-1" data-day-header={day.date}>
+      <div className="flex shrink-0 items-baseline justify-between gap-1 px-1">
+        <Button variant="ghost" size="sm" icon="plus" aria-label={t('Add a task due {adding}', { adding: day.date })}
+          data-grid-create={day.date} onClick={onCreate} />
         {showName ? (
           <span className={`truncate text-meta font-medium ${day.date === today ? 'text-accent' : 'text-muted'}`}>
             {weekdayName} {d}
@@ -66,8 +71,10 @@ export function DayHeader({ day, today, tasks, prefs, showName, selectedId, subM
           </span>
         </Tooltip>
       </div>
+      <div data-unscheduled-scroll={day.date} role="region" tabIndex={0} aria-label={t('Unscheduled on {date}', { date: day.date })}
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:outline-focus">
       {day.allDay.length > 0 && (
-        <ul className="mt-1 space-y-0.5" aria-label={t('All-day events on {date}', { date: day.date })} data-all-day={day.date}>
+        <ul className="mt-1 shrink-0 space-y-0.5" aria-label={t('All-day events on {date}', { date: day.date })} data-all-day={day.date}>
           {day.allDay.map((ev) => <li key={ev.id}><EventChip ev={ev} sub={subMap.get(ev.subscriptionId)} zone={zone} /></li>)}
         </ul>
       )}
@@ -75,7 +82,7 @@ export function DayHeader({ day, today, tasks, prefs, showName, selectedId, subM
         data-drop-lane={day.date}
         role="group"
         aria-label={t('Unscheduled on {date}', { date: day.date })}
-        className={`mt-1 min-h-8 space-y-0.5 rounded-control border border-dashed p-0.5 ${laneTarget ? 'border-accent bg-accent-soft' : 'border-default'}`}
+        className={`mt-1 min-h-8 flex-auto shrink-0 space-y-0.5 rounded-control border border-dashed p-0.5 ${laneTarget ? 'border-accent bg-accent-soft' : 'border-default'}`}
       >
         {day.lane.length === 0 && <span className="block px-1 py-1 text-hint text-faint">{t('Unscheduled')}</span>}
         {day.lane.map((task) => (
@@ -88,18 +95,20 @@ export function DayHeader({ day, today, tasks, prefs, showName, selectedId, subM
             onClick={() => onSelect(task.id)}
             onDoubleClick={() => onOpen(task.id)}
             className={`flex w-full touch-manipulation items-center gap-1 truncate rounded-control px-1.5 py-0.5 text-left text-meta ${selectedId === task.id ? 'bg-accent-soft ring-1 ring-accent' : 'bg-sunken dark:bg-raised hover:bg-sunken dark:hover:bg-raised'} border-l-3 border-l-hue-solid`}
-            data-hue={hueFor(task.project_id ? projectMap.get(task.project_id)?.color : null)}
+            data-hue={calendarTaskHue(task.priority, task.project_id ? projectMap.get(task.project_id)?.color : null, prefs.colorBy)}
           >
             <span className="truncate">{task.title || t('Untitled')}</span>
             {task.estimate_minutes ? <span className="ml-auto shrink-0 font-mono text-hint text-muted">{formatMinutes(task.estimate_minutes)}</span> : null}
           </button>
         ))}
       </div>
+      </div>
     </div>
   )
 }
 
-export function DayColumn({ day, prefs, isToday, nowMinutes, taskMap, projectMap, subMap, zone, selectedId, draggingId, expanded, setExpanded, preview, onSelect, onOpen, onDragStart }: {
+export function DayColumn({ day, prefs, isToday, nowMinutes, taskMap, projectMap, subMap, zone, selectedId, draggingId, expanded, setExpanded, preview, onSelect, onOpen, onDragStart, onCreate }: {
+  onCreate: (start: number, length: number) => void
   day: DayData
   prefs: GridPrefs
   isToday: boolean
@@ -119,9 +128,11 @@ export function DayColumn({ day, prefs, isToday, nowMinutes, taskMap, projectMap
 }) {
   const startPx = prefs.startHour * 60 * PX_PER_MIN
   const endPx = prefs.endHour * 60 * PX_PER_MIN
+  const { onPointerDown: beginCreate, selection } = useGridCreate(onCreate)
   return (
     <div
       data-drop-day={day.date}
+      onPointerDown={beginCreate}
       className="relative min-w-0 flex-1 border-l border-default"
       style={{
         height: GRID_HEIGHT,
@@ -143,7 +154,7 @@ export function DayColumn({ day, prefs, isToday, nowMinutes, taskMap, projectMap
         const task = taskMap.get(b.id)
         const block = day.blocks.get(b.id)
         if (!task || !block) return null
-        return <TaskBlock key={b.id} b={b} block={block} task={task} date={day.date} projectMap={projectMap} selected={selectedId === b.id}
+        return <TaskBlock key={b.id} b={b} block={block} task={task} date={day.date} projectMap={projectMap} colorBy={prefs.colorBy} showOverlapMarkers={prefs.showOverlapMarkers} selected={selectedId === b.id}
           dragging={draggingId === b.id} onSelect={onSelect} onOpen={onOpen} onDragStart={onDragStart} />
       })}
 
@@ -152,6 +163,15 @@ export function DayColumn({ day, prefs, isToday, nowMinutes, taskMap, projectMap
           onSelect={onSelect} onOpen={onOpen} onDragStart={onDragStart} />
       ))}
 
+      {selection && (
+        <div data-create-preview className="pointer-events-none absolute inset-x-0.5 z-30 rounded-control border-2 border-dashed border-accent bg-accent/15 text-hint text-strong"
+          style={{ top: selection.start * PX_PER_MIN, height: selection.length * PX_PER_MIN }}>
+          <span className="absolute left-1 top-0 whitespace-nowrap rounded-control bg-surface px-1 shadow-1">
+          {formatTime(selection.start)}–{selection.start + selection.length === DAY_MINUTES ? '24:00' : formatTime(selection.start + selection.length)}
+          {' · '}{formatMinutes(selection.length)}
+          </span>
+        </div>
+      )}
       {preview && (
         <div
           data-cal-id={preview.id}
@@ -173,7 +193,9 @@ export function DayColumn({ day, prefs, isToday, nowMinutes, taskMap, projectMap
 }
 
 /** One task block: drag to move, drag its lower edge to resize, double-click to open. */
-function TaskBlock({ b, block, task, date, projectMap, selected, dragging, onSelect, onOpen, onDragStart }: {
+function TaskBlock({ b, block, task, date, projectMap, colorBy, showOverlapMarkers, selected, dragging, onSelect, onOpen, onDragStart }: {
+  showOverlapMarkers: boolean
+  colorBy: GridPrefs['colorBy']
   b: PlacedBlock
   block: NonNullable<ReturnType<DayData['blocks']['get']>>
   task: Task
@@ -188,7 +210,7 @@ function TaskBlock({ b, block, task, date, projectMap, selected, dragging, onSel
   const top = b.start * PX_PER_MIN
   const height = Math.max(SLOT_MINUTES * PX_PER_MIN, (b.end - b.start) * PX_PER_MIN)
   // Project colours render through the palette hue (design-system "Stored colours render through the palette").
-  const hue = hueFor(task.project_id ? projectMap.get(task.project_id)?.color : null)
+  const hue = calendarTaskHue(task.priority, task.project_id ? projectMap.get(task.project_id)?.color : null, colorBy)
   return (
     <div
       data-cal-id={b.id}
@@ -218,7 +240,7 @@ function TaskBlock({ b, block, task, date, projectMap, selected, dragging, onSel
       <span className="sr-only">{[task.title || t('Untitled'), block.estimated ? t('{time} for {duration}', { time: formatTime(block.start), duration: formatMinutes(task.estimate_minutes!) }) : t('{time}, no estimate', { time: formatTime(block.start) }), b.overlap ? t('overlaps another item') : ''].filter(Boolean).join(', ')}</span>
       <div aria-hidden className="flex items-start gap-1">
         <span className="min-w-0 flex-1 truncate font-medium">{task.title || t('Untitled')}</span>
-        {b.overlap && <span data-overlap-marker className="shrink-0 text-warning" aria-hidden>⧉</span>}
+        {b.overlap && showOverlapMarkers && <span data-overlap-marker className="shrink-0 text-warning" aria-hidden>⧉</span>}
       </div>
       {height >= 30 && (
         <div aria-hidden className="truncate text-hint text-muted">

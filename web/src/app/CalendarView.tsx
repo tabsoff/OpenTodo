@@ -34,8 +34,10 @@ import { PLAN_PANEL, PlanPanel, type PlanActions } from './calendar/PlanPanel'
 import { useCalendarKeys } from './calendar/useCalendarKeys'
 import { WeekAgenda } from './calendar/WeekAgenda'
 import { AddOnDayDialog } from './calendar/AddOnDayDialog'
+import { AddOnGridDialog } from './calendar/AddOnGridDialog'
 import { CalendarStatus } from './calendar/CalendarStatus'
 import { useCalendarFeeds } from './calendar/useCalendarFeeds'
+import { UnscheduledHeader } from './calendar/UnscheduledHeader'
 
 /** Live preferences of this device (Dexie meta, never synced); MonthView and the settings read them too. */
 export { useGridPrefs }
@@ -96,6 +98,7 @@ export function CalendarView({ mode, date }: { mode: 'day' | 'week'; date?: stri
   const projects = useLiveProjects()
   /** The day an empty day's "Add a task" adds to (the week's agenda, lean-chrome D7). */
   const [adding, setAdding] = useState<string | null>(null)
+  const [creating, setCreating] = useState<{ date: string; start: number | null; length: number } | null>(null)
   const projectMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects])
   const rawTasks = useLiveTasks() ?? NO_TASKS
   // The grid shows every due in the viewer's zone (absolute-datetimes): zoned dues
@@ -224,12 +227,14 @@ export function CalendarView({ mode, date }: { mode: 'day' | 'week'; date?: stri
           ) : (
             <CalendarGrid mode={mode} days={days} today={today} nowMinutes={nowMinutes} prefs={prefs} shown={shown} taskMap={taskMap} projectMap={projectMap}
               subMap={feeds.subMap} zone={zone} selectedId={selectedId} expanded={expanded} setExpanded={setExpanded} drag={drag} dragTask={dragTask}
-              placing={placing} placingTask={placingTask} onSelect={select} onOpen={open} onDragStart={startDrag} />
+              placing={placing} placingTask={placingTask} onSelect={select} onOpen={open} onDragStart={startDrag}
+              onCreate={(date, start, length) => { if (!placing && !drag) setCreating({ date, start, length }) }} />
           )}
         </div>
       </div>
 
       {adding && <AddOnDayDialog date={adding} projects={projects} onClose={() => setAdding(null)} />}
+      {creating && <AddOnGridDialog date={creating.date} start={creating.start} length={creating.length} onClose={() => setCreating(null)} />}
       {drag && dragTask && (
         <div className="pointer-events-none fixed z-50 max-w-56 truncate rounded-control bg-accent px-2 py-1 text-meta text-on-accent shadow-2" style={{ left: drag.x + 12, top: drag.y + 12 }}>
           {dragTask.title || t('Untitled')}
@@ -243,7 +248,8 @@ export function CalendarView({ mode, date }: { mode: 'day' | 'week'; date?: stri
 }
 
 /** The Day or Week grid: a sticky header (day name, capacity, unscheduled lane) over the hour columns. */
-function CalendarGrid({ mode, days, today, nowMinutes, prefs, shown, taskMap, projectMap, subMap, zone, selectedId, expanded, setExpanded, drag, dragTask, placing, placingTask, onSelect, onOpen, onDragStart }: {
+function CalendarGrid({ mode, days, today, nowMinutes, prefs, shown, taskMap, projectMap, subMap, zone, selectedId, expanded, setExpanded, drag, dragTask, placing, placingTask, onSelect, onOpen, onDragStart, onCreate }: {
+  onCreate: (date: string, start: number | null, length: number) => void
   mode: 'day' | 'week'
   days: DayData[]
   today: string
@@ -278,23 +284,23 @@ function CalendarGrid({ mode, days, today, nowMinutes, prefs, shown, taskMap, pr
   return (
     <div className="min-w-full" style={{ width: mode === 'week' ? 'max(100%, 56rem)' : undefined }}>
       {/* Sticky header: day name, capacity and the unscheduled lane of each column. */}
-      <div className="sticky top-0 z-20 flex border-b border-default bg-surface">
+      <UnscheduledHeader>
         <div className="w-12 shrink-0 pt-1 text-right text-hint text-faint" aria-hidden>
           <span className="pr-1">{t('all day')}</span>
         </div>
         {days.map((d) => (
           <DayHeader key={d.date} day={d} today={today} tasks={shown} prefs={prefs} showName={mode === 'week'} selectedId={selectedId} subMap={subMap} zone={zone}
             laneTarget={drag?.target?.type === 'lane' && drag.target.date === d.date} onSelect={onSelect} onOpen={onOpen}
-            onPointerDown={(e, id) => onDragStart(e, { taskId: id, kind: 'move' })} projectMap={projectMap} />
+            onPointerDown={(e, id) => onDragStart(e, { taskId: id, kind: 'move' })} projectMap={projectMap} onCreate={() => onCreate(d.date, null, 15)} />
         ))}
-      </div>
+      </UnscheduledHeader>
 
-      <div className="flex">
+      <div data-time-grid className="relative isolate z-0 flex">
         <HourGutter />
         {days.map((d) => (
           <DayColumn key={d.date} day={d} prefs={prefs} isToday={d.date === today} nowMinutes={nowMinutes} taskMap={taskMap} projectMap={projectMap}
             subMap={subMap} zone={zone} selectedId={selectedId} draggingId={drag?.taskId ?? null} expanded={expanded} setExpanded={setExpanded}
-            preview={previewFor(d)} onSelect={onSelect} onOpen={onOpen} onDragStart={onDragStart} />
+            preview={previewFor(d)} onSelect={onSelect} onOpen={onOpen} onDragStart={onDragStart} onCreate={(start, length) => onCreate(d.date, start, length)} />
         ))}
       </div>
     </div>

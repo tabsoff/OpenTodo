@@ -1,7 +1,7 @@
 import { saveGridPrefs } from '../lib/localData'
 import { type GridPrefs } from '../lib/calendar'
 import { formatMinutes } from '../lib/duration'
-import { Select } from '../ui'
+import { Select, Switch } from '../ui'
 import { SettingRow, SettingsSection } from '../ui'
 import { useGridPrefs } from './CalendarView'
 import { t } from '../lib/i18n'
@@ -21,6 +21,17 @@ export function CalendarSettingsView({ prefs, onSave }: { prefs: GridPrefs; onSa
   const lengths = DAY_LENGTHS.includes(prefs.dayLength) ? DAY_LENGTHS : [...DAY_LENGTHS, prefs.dayLength].sort((a, b) => a - b)
   return (
     <SettingsSection {...cardCopy('calendar')}>
+      <SettingRow {...rowCopy('calendar', 'taskColors')} htmlFor="calendar-task-colors" control={
+        <Select id="calendar-task-colors" aria-label={t('Task colors')} value={prefs.colorBy}
+          onChange={(e) => onSave({ colorBy: e.target.value === 'priority' ? 'priority' : 'project' })}>
+          <option value="project">{t('By list')}</option>
+          <option value="priority">{t('By priority')}</option>
+        </Select>
+      } />
+      <SettingRow {...rowCopy('calendar', 'overlapMarkers')} control={
+        <Switch id="calendar-overlap-markers" label={t('Overlap markers')} hideLabel checked={prefs.showOverlapMarkers}
+          onChange={(showOverlapMarkers) => onSave({ showOverlapMarkers })} />
+      } />
       <SettingRow {...rowCopy('calendar', 'gridStart')} htmlFor="grid-start" control={
         <Select id="grid-start" className="sm:w-32" aria-label={t('Grid start hour')} value={prefs.startHour}
           onChange={(e) => onSave({ startHour: Number(e.target.value), endHour: Math.max(prefs.endHour, Number(e.target.value) + 1) })}>

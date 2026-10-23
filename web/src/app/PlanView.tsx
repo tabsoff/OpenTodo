@@ -179,7 +179,7 @@ export function PlanView({ date, detail: detailProp }: { date?: string; detail?:
   const from = dates[0], to = dates[dates.length - 1]
   const title = `${anchor === today ? t('Next {n} days', { n: span }) : t('{n} days', { n: span })} · ${formatShort(from)} – ${formatShort(to)}`
   const eventHue = hueFor(feeds.subs[0]?.color ?? null)
-  const rowProps = { today, detail, selectedId, editable, projectMap, subMap: feeds.subMap, zone, onPointerDown: startDrag, onOpen: (id: string) => { setSelectedId(id); setPanelTaskId(id) } }
+  const rowProps = { today, detail, selectedId, editable, projectMap, colorBy: prefs.colorBy, subMap: feeds.subMap, zone, onPointerDown: startDrag, onOpen: (id: string) => { setSelectedId(id); setPanelTaskId(id) } }
 
   return (
     <PageBody width="full" className="flex flex-col" data-calendar-page="plan">

@@ -176,6 +176,8 @@ export const SETTINGS_COPY = {
     description: msg('Working hours and day length for Day and Week, on this device.'),
     learnMore: 'settings/calendar',
     rows: {
+      taskColors: { label: msg('Task colors'), description: msg('Choose list or priority colors in every calendar view. This device only.') },
+      overlapMarkers: { label: msg('Overlap markers'), description: msg('Show a marker on tasks that overlap in time. This device only.') },
       gridStart: { label: msg('Grid starts') },
       gridEnd: { label: msg('Grid ends') },
       dayLength: { label: msg('Day length'), description: msg('Your daily capacity; the Day view warns when planned work goes over it.') },

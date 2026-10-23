@@ -16,13 +16,13 @@ export const walk = (dir) => readdirSync(dir).flatMap((n) => {
 })
 
 /** Source files whose text is shown to people: no tests, stories, test kits or fixtures. */
-export const isSource = (f) => /\.(ts|tsx)$/.test(f) && !/\.(test|stories|testkit|d)\.tsx?$/.test(f) && !/\/(stories|__screenshots__)\//.test(f) && !/test-utils|test-setup/.test(f)
+export const isSource = (f) => /\.(ts|tsx)$/.test(f) && !/\.(test|stories|testkit|d)\.tsx?$/.test(f) && !/[\\/](stories|__screenshots__)[\\/]/.test(f) && !/test-utils|test-setup/.test(f)
 
 export function parse(file, text = readFileSync(file, 'utf8')) {
   return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
 }
 
-export const rel = (f) => relative(repo, f)
+export const rel = (f) => relative(repo, f).replaceAll('\\', '/')
 
 /** The callee name of a call: `t`, `msg`, `t.rich`, … */
 export function calleeName(call) {

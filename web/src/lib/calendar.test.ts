@@ -190,15 +190,15 @@ describe('weeks and placement', () => {
 
 describe('grid preferences', () => {
   it('defaults to 06:00–22:00 and 8 hours', () => {
-    expect(normalizeGridPrefs(undefined)).toEqual({ startHour: 6, endHour: 22, dayLength: 480, planDays: 14 })
+    expect(normalizeGridPrefs(undefined)).toEqual({ startHour: 6, endHour: 22, dayLength: 480, planDays: 14, colorBy: 'project', showOverlapMarkers: true })
     expect(normalizeGridPrefs('junk')).toEqual(DEFAULT_GRID_PREFS)
   })
 
   it('keeps valid values and repairs invalid ones', () => {
-    expect(normalizeGridPrefs({ startHour: 8, endHour: 18, dayLength: 360 })).toEqual({ startHour: 8, endHour: 18, dayLength: 360, planDays: 14 })
+    expect(normalizeGridPrefs({ startHour: 8, endHour: 18, dayLength: 360 })).toEqual({ startHour: 8, endHour: 18, dayLength: 360, planDays: 14, colorBy: 'project', showOverlapMarkers: true })
     expect(normalizeGridPrefs({ startHour: 7.5, endHour: 30, dayLength: 0 })).toEqual(DEFAULT_GRID_PREFS)
-    expect(normalizeGridPrefs({ startHour: 23 })).toEqual({ startHour: 23, endHour: 24, dayLength: 480, planDays: 14 })
-    expect(normalizeGridPrefs({ endHour: 4 })).toEqual({ startHour: 3, endHour: 4, dayLength: 480, planDays: 14 })
+    expect(normalizeGridPrefs({ startHour: 23 })).toEqual({ startHour: 23, endHour: 24, dayLength: 480, planDays: 14, colorBy: 'project', showOverlapMarkers: true })
+    expect(normalizeGridPrefs({ endHour: 4 })).toEqual({ startHour: 3, endHour: 4, dayLength: 480, planDays: 14, colorBy: 'project', showOverlapMarkers: true })
     expect(normalizeGridPrefs({ startHour: 18, endHour: 9 })).toEqual(DEFAULT_GRID_PREFS)
   })
 

@@ -35,7 +35,7 @@ const ICON_PATTERNS = [
 
 export function iconProblems(file, text) {
   const out = []
-  text.split('\n').forEach((line, i) => {
+  text.split(/\r?\n/).forEach((line, i) => {
     const code = line.replace(/\/\/.*$/, '').replace(/^\s*\*.*$/, '').replace(/\/\*.*?\*\//g, '')
     // A separator joined into text ("Work › Q3 plan") is typography.
     const typography = /\.join\(\s*(['"`])\s*\S\s*\1\s*\)/.test(code)

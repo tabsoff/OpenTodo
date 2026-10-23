@@ -4,7 +4,8 @@ import { dateLocaleOf } from '../../lib/dates'
 import { formatMinutes } from '../../lib/duration'
 import { t } from '../../lib/i18n'
 import type { Project, Task } from '../../lib/types'
-import { EmptyState, hueFor } from '../../ui'
+import { EmptyState } from '../../ui'
+import { calendarTaskHue } from './taskColor'
 import { formatTime } from './grid'
 
 /**
@@ -30,7 +31,7 @@ export function WeekAgenda({ days, today, prefs, tasks, taskMap, projectMap, sel
       <button type="button" data-cal-id={task.id} data-agenda-task={task.id} onClick={() => onSelect(task.id)} onDoubleClick={() => onOpen(task.id)}
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onOpen(task.id) } }}
         className={`flex min-h-11 w-full items-center gap-2 rounded-control px-2 py-1 text-left text-body ${selectedId === task.id ? 'bg-accent-soft ring-1 ring-accent' : 'hover:bg-sunken dark:hover:bg-raised'} border-l-3 border-l-hue-solid`}
-        data-hue={hueFor(task.project_id ? projectMap.get(task.project_id)?.color : null)}>
+        data-hue={calendarTaskHue(task.priority, task.project_id ? projectMap.get(task.project_id)?.color : null, prefs.colorBy)}>
         <span className="w-14 shrink-0 font-mono text-meta text-muted">{time ?? t('all day')}</span>
         <span className="min-w-0 flex-1 truncate">{task.title || t('Untitled')}</span>
         {task.estimate_minutes ? <span className="shrink-0 font-mono text-hint text-muted">{formatMinutes(task.estimate_minutes)}</span> : null}
