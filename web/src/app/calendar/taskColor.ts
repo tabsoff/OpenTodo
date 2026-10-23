@@ -1,6 +1,5 @@
 import type { GridPrefs } from '../../lib/calendar'
-import { hueFor } from '../../ui'
-import type { HueName } from '../../ui/tokens/palette'
+import { hueFor, type HueName } from '../../ui'
 
 const PRIORITY_HUE: Record<number, HueName> = { 1: 'red', 2: 'orange', 3: 'blue', 4: 'slate' }
 
