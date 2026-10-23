@@ -4,6 +4,15 @@ All notable changes to OpenTodo are documented here. The format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+
+- Create calendar tasks by clicking or dragging over empty Day/Week time slots, with priority and description in the creation form. Day-header + creates date-only tasks.
+- Resize the unscheduled calendar area with independently scrolling day lists. Calendar settings can use priority colors and hide overlap markers on this device.
+
+### Fixed
+
+- Keep the current-time line and grid overlays below the unscheduled area.
+
 ## [0.9.0] - 2026-10-21
 
 OpenTodo 0.9.0 is about the time you spend in a task, not only the list of them. **Time tracking** and a **Focus** timer log where the hours go, the new **Plan** view lays out the next two weeks against your day length, and **Close the day** wraps up today in one batch. Tasks remember **where they came from** (a page, an email, a GitHub, GitLab, Jira or Linear issue), and assigned **GitHub and GitLab issues** can arrive as tasks by themselves. Everyday editing got calmer: press <kbd>g</kbd> and pause to see where you can go, type `#` or `@` for suggestions, click a title to edit it in place, and read the task panel as four short lines with a When editor in plain words.

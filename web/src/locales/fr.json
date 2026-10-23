@@ -4233,5 +4233,13 @@
   "Editing. Enter saves, Escape cancels, Shift+Enter opens the details.": "Modification. Entrée enregistre, Échap annule, Maj+Entrée ouvre les détails.",
   "Open details": "Ouvrir les détails",
   "Task properties": "Propriétés de la tâche",
-  "Suggests projects or labels; Enter or Tab picks, #Home/Docs picks a sub-project": "Suggère des projets ou des étiquettes ; Entrée ou Tab choisit, #Maison/Docs choisit un sous-projet"
+  "Suggests projects or labels; Enter or Tab picks, #Home/Docs picks a sub-project": "Suggère des projets ou des étiquettes ; Entrée ou Tab choisit, #Maison/Docs choisit un sous-projet",
+  "Enter a valid time.": "Saisissez une heure valide.",
+  "Resize unscheduled area": "Redimensionner la zone non planifiée",
+  "Task colors": "Couleurs des tâches",
+  "By list": "Par liste",
+  "By priority": "Par priorité",
+  "Choose list or priority colors in every calendar view. This device only.": "Couleurs par liste ou priorité dans toutes les vues du calendrier. Sur cet appareil uniquement.",
+  "Overlap markers": "Indicateurs de chevauchement",
+  "Show a marker on tasks that overlap in time. This device only.": "Afficher un indicateur sur les tâches qui se chevauchent. Sur cet appareil uniquement."
 }

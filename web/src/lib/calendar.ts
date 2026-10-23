@@ -207,6 +207,8 @@ export function placementStart(task: Pick<Task, 'due'>, date: string, today: str
 // ---- per-device grid preferences (design D7) ----
 
 export interface GridPrefs {
+  showOverlapMarkers: boolean
+  colorBy: 'project' | 'priority'
   startHour: number
   endHour: number
   /** Capacity of a day in minutes. */
@@ -215,7 +217,7 @@ export interface GridPrefs {
   planDays: 7 | 14 | 21
 }
 
-export const DEFAULT_GRID_PREFS: GridPrefs = { startHour: 6, endHour: 22, dayLength: 480, planDays: 14 }
+export const DEFAULT_GRID_PREFS: GridPrefs = { startHour: 6, endHour: 22, dayLength: 480, planDays: 14, colorBy: 'project', showOverlapMarkers: true }
 export const GRID_PREFS_META_KEY = 'calendar.grid'
 
 /** Coerce a stored value into valid preferences; anything missing or invalid takes its default. */
@@ -232,5 +234,5 @@ export function normalizeGridPrefs(raw: unknown): GridPrefs {
   }
   const dayLength = int(r.dayLength, SLOT_MINUTES, DAY_MINUTES) ?? DEFAULT_GRID_PREFS.dayLength
   const planDays = r.planDays === 7 || r.planDays === 21 ? r.planDays : DEFAULT_GRID_PREFS.planDays
-  return { startHour, endHour, dayLength, planDays }
+  return { startHour, endHour, dayLength, planDays, colorBy: r.colorBy === 'priority' ? 'priority' : 'project', showOverlapMarkers: r.showOverlapMarkers !== false }
 }

@@ -96,7 +96,7 @@ export function extract(root = repo) {
   const found = []
   for (const f of walk(join(root, 'web/src')).filter(isSource)) {
     const text = readFileSync(f, 'utf8')
-    if (f.endsWith('web/src/lib/shortcuts.ts')) found.push(...shortcutMessages(f, text))
+    if (rel(f) === 'web/src/lib/shortcuts.ts') found.push(...shortcutMessages(f, text))
     found.push(...messagesIn(f, text))
   }
   const sw = join(root, 'web/public/push-sw.js')

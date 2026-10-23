@@ -538,6 +538,7 @@
     "web/src/app/QuickAdd.tsx",
     "web/src/app/QuickAddSheet.tsx",
     "web/src/app/TabBar.tsx",
+    "web/src/app/calendar/AddOnGridDialog.tsx",
     "web/src/app/calendar/PlanAgenda.tsx",
     "web/src/app/calendar/WeekAgenda.tsx",
     "web/src/app/task-list/ListChrome.tsx"
@@ -546,7 +547,8 @@
     "web/src/app/task-list/ListChrome.tsx"
   ],
   "Add a task due {adding}": [
-    "web/src/app/calendar/AddOnDayDialog.tsx"
+    "web/src/app/calendar/AddOnDayDialog.tsx",
+    "web/src/app/calendar/DayColumn.tsx"
   ],
   "Add a task for today…": [
     "web/src/app/task-list/ListChrome.tsx"
@@ -558,7 +560,8 @@
     "web/src/app/task-list/ListChrome.tsx"
   ],
   "Add a task on {adding}": [
-    "web/src/app/calendar/AddOnDayDialog.tsx"
+    "web/src/app/calendar/AddOnDayDialog.tsx",
+    "web/src/app/calendar/AddOnGridDialog.tsx"
   ],
   "Add a task to the selected task’s column": [
     "web/src/lib/shortcuts.ts"
@@ -1396,6 +1399,12 @@
     "web/src/app/WelcomeDialog.tsx",
     "web/src/app/settingsIndex.ts"
   ],
+  "By list": [
+    "web/src/app/CalendarSettings.tsx"
+  ],
+  "By priority": [
+    "web/src/app/CalendarSettings.tsx"
+  ],
   "CSV files and other apps’ exports go through Settings → Data → Import.": [
     "web/src/app/TemplateDialogs.tsx"
   ],
@@ -1523,6 +1532,7 @@
     "web/src/app/VoiceSettings.tsx",
     "web/src/app/WebhooksPanel.tsx",
     "web/src/app/assistant/AssistantSettings.tsx",
+    "web/src/app/calendar/AddOnGridDialog.tsx",
     "web/src/app/focus/FocusParts.tsx",
     "web/src/app/shortcuts/Spotlight.tsx",
     "web/src/app/task-detail/AttachmentsRow.tsx",
@@ -1708,6 +1718,9 @@
   ],
   "Choose light or dark": [
     "web/src/app/FirstRun.tsx"
+  ],
+  "Choose list or priority colors in every calendar view. This device only.": [
+    "web/src/lib/settingsCopy.ts"
   ],
   "Choose on or off.": [
     "web/src/lib/fields.ts"
@@ -2719,7 +2732,8 @@
     "web/src/app/SavedViewView.tsx"
   ],
   "Description": [
-    "web/src/app/ShareCapture.tsx"
+    "web/src/app/ShareCapture.tsx",
+    "web/src/app/calendar/AddOnGridDialog.tsx"
   ],
   "Description changed": [
     "web/src/lib/assistant.ts"
@@ -3246,6 +3260,9 @@
   "Enter a start and an end time": [
     "web/src/app/task-detail/TimeTab.tsx"
   ],
+  "Enter a valid time.": [
+    "web/src/app/calendar/AddOnGridDialog.tsx"
+  ],
   "Enter a whole number.": [
     "web/src/app/RemindersField.tsx"
   ],
@@ -3289,6 +3306,7 @@
   "Estimate": [
     "web/src/app/EstimateField.tsx",
     "web/src/app/ParseChips.tsx",
+    "web/src/app/calendar/AddOnGridDialog.tsx",
     "web/src/app/task-detail/Facets.tsx",
     "web/src/lib/facets.ts"
   ],
@@ -6823,6 +6841,10 @@
   "Overdue now": [
     "web/src/app/review/StatsView.tsx"
   ],
+  "Overlap markers": [
+    "web/src/app/CalendarSettings.tsx",
+    "web/src/lib/settingsCopy.ts"
+  ],
   "Overwrite changed fields": [
     "web/src/app/ImportScreen.tsx"
   ],
@@ -7176,6 +7198,7 @@
     "web/src/app/RuleEditor.tsx",
     "web/src/app/SavedViewView.tsx",
     "web/src/app/bulk/BulkActions.tsx",
+    "web/src/app/calendar/AddOnGridDialog.tsx",
     "web/src/app/task-detail/Facets.tsx",
     "web/src/app/task-list/InlineEditor.tsx"
   ],
@@ -7868,6 +7891,9 @@
   ],
   "Resize sidebar": [
     "web/src/app/Shell.tsx"
+  ],
+  "Resize unscheduled area": [
+    "web/src/app/calendar/UnscheduledHeader.tsx"
   ],
   "Response": [
     "web/src/app/WebhooksPanel.tsx"
@@ -8636,6 +8662,9 @@
   "Show a local notification": [
     "web/src/app/NotificationsSettings.tsx"
   ],
+  "Show a marker on tasks that overlap in time. This device only.": [
+    "web/src/lib/settingsCopy.ts"
+  ],
   "Show all": [
     "web/src/app/task-detail/TaskDetail.tsx"
   ],
@@ -9360,6 +9389,10 @@
   "Task actions": [
     "web/src/app/task-detail/TaskDetail.tsx"
   ],
+  "Task colors": [
+    "web/src/app/CalendarSettings.tsx",
+    "web/src/lib/settingsCopy.ts"
+  ],
   "Task completed": [
     "web/src/app/focus/FocusView.tsx",
     "web/src/lib/undoActions.ts",
@@ -9375,7 +9408,8 @@
     "web/src/lib/webhooks.ts"
   ],
   "Task name": [
-    "web/src/app/calendar/AddOnDayDialog.tsx"
+    "web/src/app/calendar/AddOnDayDialog.tsx",
+    "web/src/app/calendar/AddOnGridDialog.tsx"
   ],
   "Task properties": [
     "web/src/app/task-list/InlineEditor.tsx"
@@ -10609,7 +10643,8 @@
   ],
   "Time": [
     "web/src/app/AuditPanel.tsx",
-    "web/src/app/DigestCard.tsx"
+    "web/src/app/DigestCard.tsx",
+    "web/src/app/calendar/AddOnGridDialog.tsx"
   ],
   "Time (server time)": [
     "web/src/app/BackupsPanel.tsx"
@@ -11292,7 +11327,8 @@
     "web/src/app/CaldavPanel.tsx"
   ],
   "Use minutes or hours, for example 20, 45m, 1h30 (up to one week).": [
-    "web/src/app/EstimateField.tsx"
+    "web/src/app/EstimateField.tsx",
+    "web/src/app/calendar/AddOnGridDialog.tsx"
   ],
   "Use my password instead": [
     "web/src/app/ReauthDialog.tsx"

@@ -5,13 +5,14 @@
 // the time only when overdue or timed today). Projected rows are dimmed, read-only
 // and never selected; event rows are read-only buttons that open their details.
 import type { RowDetail } from '../../lib/appearance'
-import type { EventBlock } from '../../lib/calendar'
+import type { EventBlock, GridPrefs } from '../../lib/calendar'
 import { formatTime } from '../../lib/dates'
 import { formatMinutes } from '../../lib/duration'
 import { t } from '../../lib/i18n'
 import { formatPlanLoad, planLoadTooltip, type PlanEntry, type PlanLoad, type Projection } from '../../lib/plan'
 import type { CalendarEvent, CalendarSubscription, Project, Task } from '../../lib/types'
-import { hueFor, Icon, Tooltip } from '../../ui'
+import { Icon, Tooltip } from '../../ui'
+import { calendarTaskHue } from './taskColor'
 import { EventChip, EventRow } from '../CalendarEvents'
 
 /** One day of the Plan: its rows, its events and its load. */
@@ -34,7 +35,8 @@ function timeTone(date: string, today: string, detail: RowDetail): string {
   return 'text-muted'
 }
 
-export function PlanTaskRow({ task, date, time, today, detail, selected, canEdit, project, large, onPointerDown, onSelect, onOpen }: {
+export function PlanTaskRow({ task, date, time, today, detail, selected, canEdit, project, large, colorBy = 'project', onPointerDown, onSelect, onOpen }: {
+  colorBy?: GridPrefs['colorBy']
   task: Task
   date: string
   time?: string
@@ -51,7 +53,7 @@ export function PlanTaskRow({ task, date, time, today, detail, selected, canEdit
 }) {
   const priority = task.priority < 4 ? (detail === 'calm' ? PRIORITY_DOT_CALM : PRIORITY_DOT)[task.priority] : null
   return (
-    <button type="button" tabIndex={large ? 0 : -1} data-plan-task={task.id} data-hue={hueFor(project?.color ?? null)} aria-pressed={selected}
+    <button type="button" tabIndex={large ? 0 : -1} data-plan-task={task.id} data-hue={calendarTaskHue(task.priority, project?.color, colorBy)} aria-pressed={selected}
       onPointerDown={canEdit ? onPointerDown : undefined}
       onClick={(e) => { e.stopPropagation(); if (selected && large) onOpen(); else onSelect() }}
       onDoubleClick={onOpen}
@@ -73,9 +75,9 @@ export function PlanTaskRow({ task, date, time, today, detail, selected, canEdit
 }
 
 /** A projected occurrence: dimmed, read-only, never selected, dragged or written. */
-export function ProjectedRow({ projection, large }: { projection: Projection; large?: boolean }) {
+export function ProjectedRow({ projection, large, colorBy = 'project', project }: { projection: Projection; large?: boolean; colorBy?: GridPrefs['colorBy']; project?: Project }) {
   return (
-    <div data-plan-projected={projection.id} className={`flex w-full min-w-0 items-center gap-x-1 rounded-chip border border-dashed border-default px-1 text-faint ${large ? 'min-h-11 py-1 text-body' : 'flex-wrap py-0.5 text-meta'}`}>
+    <div data-plan-projected={projection.id} data-hue={calendarTaskHue(projection.priority, project?.color, colorBy)} className={`flex w-full min-w-0 items-center gap-x-1 rounded-chip border border-dashed ${colorBy === 'priority' ? 'border-hue-solid' : 'border-default'} px-1 text-faint ${large ? 'min-h-11 py-1 text-body' : 'flex-wrap py-0.5 text-meta'}`}>
       <span className="sr-only">{[projection.title || t('Untitled'), t('projected'), projection.time ? formatTime(projection.time) : '', projection.estimate_minutes ? formatMinutes(projection.estimate_minutes) : ''].filter(Boolean).join(', ')}</span>
       <span aria-hidden className="inline-flex shrink-0"><Icon name="repeat" size="xs" /></span>
       {projection.time && <span aria-hidden className="shrink-0 tabular-nums">{formatTime(projection.time)}</span>}
@@ -107,7 +109,8 @@ export function CapacityBar({ load, dayLength, eventHue }: { load: PlanLoad; day
 }
 
 /** The rows of one day: all-day chips, timed events, then tasks and projections in the column's order. */
-export function PlanDayRows({ day, today, detail, selectedId, large, editable, projectMap, subMap, zone, onPointerDown, onSelect, onOpen }: {
+export function PlanDayRows({ day, today, detail, selectedId, large, colorBy = 'project', editable, projectMap, subMap, zone, onPointerDown, onSelect, onOpen }: {
+  colorBy?: GridPrefs['colorBy']
   day: PlanDayData
   today: string
   detail: RowDetail
@@ -126,9 +129,9 @@ export function PlanDayRows({ day, today, detail, selectedId, large, editable, p
       {day.allDay.map((ev) => <EventChip key={ev.id} ev={ev} sub={subMap.get(ev.subscriptionId)} zone={zone} />)}
       {day.events.map((b) => <EventRow key={b.id} ev={b.event} start={b.start} end={b.end} sub={subMap.get(b.event.subscriptionId)} zone={zone} />)}
       {day.entries.map((entry) => entry.kind === 'projected'
-        ? <ProjectedRow key={entry.projection.id} projection={entry.projection} large={large} />
+        ? <ProjectedRow key={entry.projection.id} projection={entry.projection} large={large} colorBy={colorBy} project={entry.projection.project_id ? projectMap.get(entry.projection.project_id) : undefined} />
         : (
-          <PlanTaskRow key={entry.task.id} task={entry.task} date={day.date} time={entry.time} today={today} detail={detail} large={large}
+          <PlanTaskRow key={entry.task.id} task={entry.task} date={day.date} time={entry.time} today={today} detail={detail} large={large} colorBy={colorBy}
             selected={selectedId === entry.task.id} canEdit={editable(entry.task)} project={entry.task.project_id ? projectMap.get(entry.task.project_id) : undefined}
             onPointerDown={(e) => onPointerDown(entry.task, e)} onSelect={() => onSelect(entry.task.id, day.date)} onOpen={() => onOpen(entry.task.id)} />
         ))}

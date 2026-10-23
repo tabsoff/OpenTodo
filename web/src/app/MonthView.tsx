@@ -3,7 +3,8 @@
 // Moving a task, by drag onto a day or with the arrows, is one due edit that keeps
 // its time and zone; `q` adds a task due on the focused day. Works offline.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, EmptyState, hueFor, PageBody, PageHeader, useMediaQuery } from '../ui'
+import { Button, EmptyState, PageBody, PageHeader, useMediaQuery } from '../ui'
+import { calendarTaskHue } from './calendar/taskColor'
 import { calendarTasks, dayLoad, formatLoad, nudgeDue } from '../lib/calendar'
 import { rememberCalendarMode } from '../lib/calendarMode'
 import { addDaysISO, dueFromView, formatTime, viewedTask, dateLocaleOf } from '../lib/dates'
@@ -166,7 +167,7 @@ export function MonthView({ date }: { date?: string }) {
     const v = viewedMap.get(task.id)
     const canEdit = editable(task)
     const selected = selectedId === task.id
-    const hue = hueFor(task.project_id ? projectMap.get(task.project_id)?.color : null)
+    const hue = calendarTaskHue(task.priority, task.project_id ? projectMap.get(task.project_id)?.color : null, prefs.colorBy)
     return (
       <button key={task.id} type="button" tabIndex={-1} data-month-task={task.id} data-hue={hue} aria-pressed={selected}
         onPointerDown={canEdit ? (e) => {

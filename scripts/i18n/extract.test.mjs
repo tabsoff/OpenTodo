@@ -2,8 +2,17 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { messagesIn, methodMessages, shortcutMessages, workerMessages } from './extract.mjs'
+import { isSource, rel, repo } from './source.mjs'
+import { join } from 'node:path'
 
 const ids = (list) => list.map((m) => m.id)
+
+test('Windows extraction uses portable catalog paths and excludes story folders', () => {
+  assert.equal(rel(join(repo, 'web', 'src', 'lib', 'shortcuts.ts')), 'web/src/lib/shortcuts.ts')
+  assert.equal(isSource('C:\\repo\\web\\src\\stories\\fixture.tsx'), false)
+  assert.equal(isSource('/repo/web/src/stories/fixture.tsx'), false)
+  assert.equal(isSource('C:\\repo\\web\\src\\app\\CalendarView.tsx'), true)
+})
 
 test('collects plain, context, rich, plural, msg() and conditional messages', () => {
   const src = `
